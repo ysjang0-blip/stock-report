@@ -8,7 +8,7 @@
   - 요약 PDF는 텔레그램으로만 받고 저장소에는 올리지 않음(`reports/`는 .gitignore). 저장소에는 이력·실행 기록(`data/`)만 저장
   - 수집 불가: DB증권(로그인·수집 금지), 삼성증권(로그인 필요)
 - 요약: 각 리포트 PDF 첫 페이지의 굵은 핵심 문장(최대 3개). 뽑지 못하면 한경 요약 → 네이버 본문 앞부분 순으로 대신 씀
-- 실행: GitHub Actions, 한국시간 월~금 **08:10** 본발송, **18:30** 보충발송(아침 이후 새 리포트가 생겼을 때만 갱신본을 다시 보냄)
+- 실행: GitHub Actions. 정시 실행은 **cron-job.org**가 GitHub API로 호출(한국시간 월~금 **08:10** 본발송 `mode=main`, **18:30** 보충발송 `mode=supplement` — 아침 이후 새 리포트가 생겼을 때만 갱신본 전송). GitHub 자체 예약은 08:50 예비 안전망(이미 보냈으면 건너뜀)
 - 첫 페이지 '오늘의 핵심' 상자: 관심 종목·투자의견 변경·상향·신규·하향을 종목명과 변화율로 한눈에. 텔레그램에도 같은 요약을 먼저 보내고 PDF를 이어서 보냄
 - 관심 종목: `watchlist.txt`(예시는 `watchlist.example.txt`, 저장소에 올라가지 않음) 또는 GitHub Secrets의 `WATCHLIST`. 관심 종목 리포트는 변화가 없어도 맨 위 '★ 내 관심 종목' 구역에 모임
 - 정렬: 변화별 구역(★관심 종목 → ◆투자의견 변경 → ▲목표가 상향 → N신규 → ▲▼엇갈림 → ▼하향 → =유지 → 목표가 없음) → 같은 종목끼리 묶음 → 변화 구역은 목표가 변화폭 큰 순, 나머지는 Upside 순
@@ -46,3 +46,22 @@ python -m playwright install chromium
 python src/main.py --date 2026-10-07 --no-send   # PDF만 만들기
 python src/main.py --bootstrap                   # 과거 180일 이력 다시 모으기
 ```
+
+
+## cron-job.org로 정시 실행하기
+GitHub 자체 예약은 몇 분~몇십 분 늦거나 건너뛸 수 있어서, 정시 실행은 cron-job.org가 GitHub를 직접 호출하게 한다.
+
+1. **GitHub 토큰 만들기**: GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token
+   - Repository access: **Only select repositories** → `stock-report` 하나만
+   - Permissions → Repository permissions → **Actions: Read and write**
+   - 만료일은 최대 1년. 만료되면 호출이 실패하므로 달력에 기록해 둔다.
+2. **cron-job.org 가입** 후 CREATE CRONJOB을 두 개 만든다. (공통 설정)
+   - URL: `https://api.github.com/repos/ysjang0-blip/stock-report/actions/workflows/daily.yml/dispatches`
+   - Request method: **POST**
+   - Time zone: **Asia/Seoul**
+   - Headers: `Accept: application/vnd.github+json`, `Authorization: Bearer <1번 토큰>`, `X-GitHub-Api-Version: 2022-11-28`, `User-Agent: cron-job-org`, `Content-Type: application/json`
+3. 두 작업의 차이
+   - 아침: 평일(월~금) 08:10, Request body `{"ref":"main","inputs":{"mode":"main"}}`
+   - 저녁: 평일(월~금) 18:30, Request body `{"ref":"main","inputs":{"mode":"supplement"}}`
+4. 성공하면 GitHub가 **204**(내용 없음)를 돌려준다. cron-job.org의 실패 알림 이메일을 켜 둔다.
+5. 시험: cron-job.org에서 **Test run**을 누르면 GitHub Actions 탭에 새 실행이 나타난다.

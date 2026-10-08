@@ -1,17 +1,29 @@
 name: 기업리포트 요약
 
+# 실행 방법 (둘 중 어느 쪽으로 시작해도 같은 프로그램이 돈다)
+#  1) 정시 실행: cron-job.org 가 GitHub API로 이 워크플로를 호출한다.
+#       한국시간 평일 08:10 → mode=main, 18:30 → mode=supplement   (설정 방법은 README 참고)
+#  2) 예비 안전망: cron-job.org 가 실패했을 때를 대비해 GitHub 자체 예약이 08:50에 한 번 더 확인한다.
+#       이미 보낸 리포트면 건너뛰고(only-if-new), 아직 안 보냈다면 이때 보낸다.
+#  3) 수동: Actions 탭 → Run workflow
 on:
   schedule:
-    # GitHub 예약은 UTC 기준(한국시간 - 9시간).
-    # 한국시간 월~금 08:10 본발송 (UTC 전날 23:10, 일~목)
-    # 한국시간 월~금 18:30 보충발송 — 아침 이후 새 리포트가 생겼을 때만 갱신본 전송
-    - cron: "10 23 * * 0-4"
-    - cron: "30 9 * * 1-5"
+    # GitHub 예약은 UTC 기준(한국시간 - 9시간). 한국시간 월~금 08:50 = UTC 전날(일~목) 23:50
+    - cron: "50 23 * * 0-4"
   workflow_dispatch:
     inputs:
       date:
         description: "날짜 (YYYY-MM-DD, 비우면 오늘)"
         required: false
+        default: ""
+      mode:
+        description: "main = 본발송, supplement = 보충발송(새 리포트가 있을 때만 전송)"
+        required: false
+        default: "main"
+        type: choice
+        options:
+          - main
+          - supplement
 
 permissions:
   contents: write
@@ -44,10 +56,15 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
           TZ: Asia/Seoul
+          # 입력값은 셸 명령에 직접 끼워 넣지 않고 환경변수로 받는다
+          INPUT_DATE: ${{ github.event.inputs.date }}
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+          EVENT: ${{ github.event_name }}
         run: |
           ARGS=""
-          if [ -n "${{ github.event.inputs.date }}" ]; then ARGS="--date ${{ github.event.inputs.date }}"; fi
-          if [ "${{ github.event.schedule }}" = "30 9 * * 1-5" ]; then ARGS="$ARGS --only-if-new"; fi
+          if [ -n "$INPUT_DATE" ]; then ARGS="--date $INPUT_DATE"; fi
+          if [ "$INPUT_MODE" = "supplement" ] || [ "$EVENT" = "schedule" ]; then ARGS="$ARGS --only-if-new"; fi
+          echo "실행 방식: $EVENT / mode=${INPUT_MODE:-예약} / 인자: $ARGS"
           python src/main.py $ARGS
 
       # 요약 PDF는 텔레그램으로만 받는다(공개 저장소에 올리지 않음). 저장소에는 이력·실행 기록만 남긴다.
