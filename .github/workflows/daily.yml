@@ -1,0 +1,61 @@
+name: 기업리포트 요약
+
+on:
+  schedule:
+    # GitHub 예약은 UTC 기준(한국시간 - 9시간).
+    # 한국시간 월~금 08:10 본발송 (UTC 전날 23:10, 일~목)
+    # 한국시간 월~금 18:30 보충발송 — 아침 이후 새 리포트가 생겼을 때만 갱신본 전송
+    - cron: "10 23 * * 0-4"
+    - cron: "30 9 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "날짜 (YYYY-MM-DD, 비우면 오늘)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 한글 글꼴 / 패키지 설치
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk tesseract-ocr tesseract-ocr-kor
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: 리포트 요약 생성 및 텔레그램 전송
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          WATCHLIST: ${{ secrets.WATCHLIST }}
+          TZ: Asia/Seoul
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then ARGS="--date ${{ github.event.inputs.date }}"; fi
+          if [ "${{ github.event.schedule }}" = "30 9 * * 1-5" ]; then ARGS="$ARGS --only-if-new"; fi
+          python src/main.py $ARGS
+
+      # 요약 PDF는 텔레그램으로만 받는다(공개 저장소에 올리지 않음). 저장소에는 이력·실행 기록만 남긴다.
+      - name: 이력 저장(커밋)
+        if: always()
+        run: |
+          git config user.name "report-bot"
+          git config user.email "report-bot@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "report: $(TZ=Asia/Seoul date +%F)"
+          git pull --rebase -q && git push -q

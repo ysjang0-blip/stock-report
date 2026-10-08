@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기업리포트 요약 {{ date_dot }}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 10mm; }
+  body { font-family: "Noto Sans CJK KR", "Noto Sans KR", "Malgun Gothic", sans-serif; font-size: 7.6pt; color: #222; margin: 0; }
+  h1 { font-size: 15pt; color: #1f3d7a; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid #ccc; }
+  h1 small { font-size: 9pt; color: #777; font-weight: normal; margin-left: 8px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  thead { display: table-header-group; }
+  th { background: #f2f4f8; color: #2b5cab; font-weight: 700; padding: 4px 3px; border-bottom: 1px solid #c8cfdc; white-space: nowrap; }
+  td { padding: 3px 4px; border-bottom: 1px solid #e3e3e3; vertical-align: middle; }
+  tr { page-break-inside: avoid; }
+  .c { text-align: center; } .r { text-align: right; white-space: nowrap; }
+  .up-red { color: #e02424; font-weight: 700; }
+  .down { color: #1f3d7a; }
+  .muted { color: #999; }
+  .sum { line-height: 1.35; }
+  a { color: inherit; text-decoration: none; }
+  tr.sec td { background: #1f3d7a; color: #fff; font-weight: 700; font-size: 9pt; padding: 5px 8px; border: 0; }
+  tr.sec.up td { background: #c62828; } tr.sec.down td { background: #1f4e9c; }
+  tr.sec.new td { background: #6a3fa0; } tr.sec.mixed td { background: #8d5a00; }
+  tr.sec.keep td, tr.sec.none td { background: #5f6b7a; }
+  tr.sec td small { font-weight: normal; opacity: .85; margin-left: 6px; }
+  tr.first-of-stock td { border-top: 1.4px solid #9aa5b5; }
+  .multi { color: #c62828; font-size: 7pt; font-weight: 700; }
+  .tp-up { color: #e02424; font-weight: 700; } .tp-down { color: #1f4e9c; font-weight: 700; }
+  .est { color: #999; font-weight: normal; }
+  .prev { display: block; color: #777; font-size: 6.6pt; font-weight: normal; }
+  .note { display: block; color: #b45309; font-size: 6.8pt; margin-top: 2px; }
+  .carried { display: inline-block; background: #fff3cd; color: #8a6d00; font-size: 6.5pt; padding: 0 3px; border-radius: 2px; margin-right: 3px; }
+  tr.sec.opinion td { background: #b45309; }
+  tr.sec.watch td { background: #0f766e; }
+  .digest { border: 1.2px solid #1f3d7a; border-radius: 4px; padding: 6px 10px; margin: 0 0 8px; page-break-inside: avoid; }
+  .digest h2 { font-size: 10pt; margin: 0 0 4px; color: #1f3d7a; }
+  .digest table { table-layout: auto; }
+  .digest td { border: 0; padding: 2px 4px; vertical-align: top; font-size: 8pt; line-height: 1.45; }
+  .digest td.k { white-space: nowrap; font-weight: 700; width: 1%; padding-right: 10px; }
+  .digest .k.watch { color: #0f766e; } .digest .k.opinion { color: #b45309; }
+  .digest .k.up { color: #c62828; } .digest .k.down { color: #1f4e9c; }
+  .digest .k.new { color: #6a3fa0; } .digest .k.mixed { color: #8d5a00; }
+  .legend { font-size: 7pt; color: #666; margin: -4px 0 6px; }
+</style>
+</head>
+<body>
+<h1>기업리포트 요약 ({{ date_dot }})<small>{{ total }}건 · 출처: 한경컨센서스, 네이버 증권 리서치, KB·NH·한국투자·다올 홈페이지</small></h1>
+<div class="legend">정렬: 변화별 구역 → 같은 종목끼리 묶음 → 변화 구역은 목표가 변화폭 큰 순, 나머지는 Upside 순 ·
+  ▲▼=N 리포트 문구로 확인 · <span class="est">*</span> 과거 수집 이력으로 추정 · <span style="color:#b45309">⚠</span> 근거 엇갈림(확인 필요) · – 판단 근거 없음
+  {% if carried %}· <span class="carried">전일 발간</span> 지난 판 이후 늦게 올라온 리포트{% endif %}</div>
+{% if digest %}
+<div class="digest">
+  <h2>오늘의 핵심</h2>
+  <table>
+  {% set keys = {"관심 종목": "watch", "투자의견 변경": "opinion", "목표가 상향": "up", "신규 커버리지": "new", "증권사별 엇갈림": "mixed", "목표가 하향": "down"} %}
+  {% for label, items in digest %}
+    <tr><td class="k {{ keys.get(label, '') }}">{{ label }} ({{ items|length }})</td><td>{{ items|join(" · ") }}</td></tr>
+  {% endfor %}
+  </table>
+</div>
+{% endif %}
+<table>
+  <colgroup>
+    <col style="width:10%"><col style="width:10%"><col style="width:4.4%"><col style="width:4.4%">
+    <col style="width:3.2%"><col style="width:7.6%"><col style="width:5.4%"><col style="width:5.2%">
+    <col style="width:13%"><col>
+  </colgroup>
+  <thead>
+    <tr><th>기관명/작성자</th><th>기업명</th><th>의견변동</th><th>투자의견</th><th>방향</th>
+        <th>목표주가</th><th>전일주가</th><th>Upside%</th><th>제목</th><th>요약</th></tr>
+  </thead>
+  <tbody>
+  {% for sec in sections %}
+    <tr class="sec {{ sec.key }}"><td colspan="10">{{ sec.title }}<small>{{ sec.stocks|length }}종목 · {{ sec.count }}건</small></td></tr>
+    {% for reps in sec.stocks %}{% for r in reps %}
+    <tr class="{% if loop.first %}first-of-stock{% endif %}">
+      <td>{{ r.broker }}{% if r.author %}<br><span class="muted">{{ r.author }}</span>{% endif %}</td>
+      <td>{{ r.name }} [{{ r.code }}]{% if loop.first and reps|length > 1 %}<br><span class="multi">{{ reps|length }}개 증권사</span>{% endif %}</td>
+      <td class="c {% if r.op_change == '▲' %}tp-up{% elif r.op_change == '▼' %}tp-down{% endif %}">{{ r.op_change }}{% if r.op_basis in ('history', 'none') and r.op_change != '–' %}<span class="est">*</span>{% endif %}</td>
+      <td class="c">{{ r.opinion }}</td>
+      <td class="c {% if r.tp_change == '▲' %}tp-up{% elif r.tp_change == '▼' %}tp-down{% endif %}">{{ r.tp_change }}{% if r.tp_basis in ('history', 'none') and r.tp_change != '–' %}<span class="est">*</span>{% endif %}{% if r.notes %}<span style="color:#b45309">⚠</span>{% endif %}</td>
+      <td class="r {% if r.tp_change in ('▲', 'N') %}up-red{% endif %}">{{ "{:,}".format(r.target) if r.target else "" }}{% if r.tp_pct is not none %}<span class="prev">{% if r.prev_target %}← {{ "{:,}".format(r.prev_target) }} {% endif %}({{ "%+.1f"|format(r.tp_pct) }}%)</span>{% endif %}</td>
+      <td class="r">{{ "{:,}".format(r.prev_close) if r.prev_close else "" }}</td>
+      <td class="r">{{ "%.2f%%"|format(r.upside) if r.upside is not none else "" }}</td>
+      <td>{% if r.carried %}<span class="carried">{{ r.date[5:].replace('-', '/') }} 발간</span>{% endif %}{% if r.pdf %}<a href="{{ r.pdf }}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}</td>
+      <td class="sum">{% for b in r.bullets if b != r.title %}ㆍ {{ b }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if r.ocr and r.bullets %}<span class="est" style="font-size:6.5pt"> (요약 이미지 글자인식 — 오탈자 가능)</span>{% endif %}{% for n in r.notes %}<span class="note">⚠ {{ n }}</span>{% endfor %}</td>
+    </tr>
+    {% endfor %}{% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+</body>
+</html>

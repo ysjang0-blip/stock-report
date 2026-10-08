@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/*.bak
+reports/
+watchlist.txt
+/*.pdf
+.pytest_cache/
