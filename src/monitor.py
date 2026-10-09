@@ -12,6 +12,24 @@ FIELDS = ["run_at", "date", "mode", "hankyung", "naver", "included", "carried",
           "pdf_read", "pdf_judged", "brokers", "warnings"]
 KST = timezone(timedelta(hours=9))
 
+# 한국 공휴일·증시 휴장일(대체공휴일 포함). 이 날은 리포트가 거의 없어 "0건" 경고를 하지 않는다.
+# 매년 말에 다음 해 날짜를 추가한다(2028년 이후는 아직 없음).
+HOLIDAYS = {
+    # 2026
+    "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-01",
+    "2026-05-05", "2026-05-25", "2026-06-03", "2026-08-17", "2026-09-24", "2026-09-25",
+    "2026-10-05", "2026-10-09", "2026-12-25", "2026-12-31",
+    # 2027
+    "2027-01-01", "2027-02-08", "2027-02-09", "2027-03-01", "2027-05-05", "2027-05-13",
+    "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-04", "2027-10-11",
+    "2027-12-31",
+}
+
+
+def is_workday(date):
+    """평일이면서 공휴일이 아닌 날."""
+    return Date.fromisoformat(date).weekday() < 5 and date not in HOLIDAYS
+
 
 def _load():
     if not os.path.exists(PATH):
@@ -23,7 +41,7 @@ def _load():
 def check(stats, date, mode):
     """경고 문구 목록."""
     warns = []
-    weekday = Date.fromisoformat(date).weekday() < 5
+    weekday = is_workday(date)
     hk, nv, inc = stats["hankyung"], stats["naver"], stats["included"]
 
     if weekday and hk == 0 and nv == 0:

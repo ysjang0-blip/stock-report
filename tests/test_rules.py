@@ -79,6 +79,7 @@ def test_editions_carry_over():
 def test_monitor_warnings():
     z = {"hankyung": 0, "naver": 0, "included": 0, "carried": 0, "pdf_read": 0, "pdf_judged": 0}
     assert monitor.check(z, "2026-10-08", "main")          # 평일 0건 → 경고
+    assert not monitor.check(z, "2026-10-09", "main")      # 한글날 0건 → 정상
     assert not monitor.check(z, "2026-10-10", "main")      # 토요일 0건 → 정상
     assert monitor.check({**z, "naver": 40, "included": 40, "pdf_read": 38}, "2026-10-08", "main")  # 한경만 0
     assert monitor.check({**z, "brokers": {"NH투자증권": "오류: Timeout"}}, "2026-10-10", "main")
