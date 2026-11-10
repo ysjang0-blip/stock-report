@@ -54,6 +54,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
           TZ: Asia/Seoul
           # 입력값은 셸 명령에 직접 끼워 넣지 않고 환경변수로 받는다

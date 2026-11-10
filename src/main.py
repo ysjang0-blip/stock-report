@@ -118,17 +118,38 @@ def run(date, send, only_if_new):
     if only_if_new and sent.get(date, 0) >= len(reports):
         print("새로 추가된 리포트가 없어 전송을 건너뜁니다.")
         return
-    if notify_telegram.enabled():
-        text = caption(sections, len(reports), date, warns)
-        if sent.get(date):
-            text = "🔄 보충본 (아침 이후 추가된 리포트 포함)\n" + text
-        notify_telegram.send_message(text)            # 요약은 일반 메시지로(길이 제한 4,096자)
-        notify_telegram.send_document(out_path, f"{date} 기업리포트 요약 PDF ({len(reports)}건)")
-        sent[date] = len(reports)
-        save_sent(sent)
-        print("텔레그램 전송 완료")
-    else:
+    if not (notify_telegram.enabled() or notify_telegram.channel_enabled()):
         print("TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID가 없어 전송을 건너뜁니다.")
+        return
+    prefix = "🔄 보충본 (아침 이후 추가된 리포트 포함)\n" if sent.get(date) else ""
+    file_caption = f"{date} 기업리포트 요약 PDF ({len(reports)}건)"
+    if notify_telegram.enabled():
+        notify_telegram.send_message(prefix + caption(sections, len(reports), date, warns))  # 길이 제한 4,096자
+        notify_telegram.send_document(out_path, file_caption)
+        print("텔레그램 개인 채팅 전송 완료")
+    if notify_telegram.channel_enabled():
+        try:
+            share_channel(reports, sections, date, out_path, prefix, file_caption)
+            print("텔레그램 채널 전송 완료")
+        except Exception:
+            traceback.print_exc()
+            if notify_telegram.enabled():
+                notify_telegram.send_message(f"⚠️ 기업리포트 요약 {date} 채널 전송 실패\n{traceback.format_exc()[-800:]}")
+    sent[date] = len(reports)
+    save_sent(sent)
+
+
+def share_channel(reports, sections, date, out_path, prefix, file_caption):
+    """공유 채널용: 관심 종목 구역(보유 종목 노출)과 수집 경고는 빼고 보낸다."""
+    if any(sec["key"] == "watch" for sec in sections):
+        sections = build.sort_sections(reports)          # 관심 종목 없이 다시 정렬
+        out_dir = os.path.join(os.path.dirname(out_path), "channel")
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = render_pdf.render(sections, len(reports), date,
+                                     os.path.join(out_dir, os.path.basename(out_path)), build.digest(sections))
+    chat = notify_telegram.channel()
+    notify_telegram.send_message(prefix + caption(sections, len(reports), date), chat=chat)
+    notify_telegram.send_document(out_path, file_caption, chat=chat)
 
 
 def main():

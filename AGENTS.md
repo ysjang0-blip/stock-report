@@ -39,7 +39,7 @@ python -m pytest tests                           # 판정 규칙 회귀 테스�
 | `monitor.py` | `data/runs.csv` 실행 기록 + 이상 경고(평일 0건, 한 출처만 0건, 평소의 40% 미만, PDF 읽기 실패, 증권사 수집 실패) |
 | `watchlist.py` | 관심 종목: 환경변수 `WATCHLIST` 또는 `watchlist.txt`(gitignore) |
 | `render_pdf.py` | `templates/report.html` → Playwright Chromium으로 가로 A4 PDF, 빈 페이지 제거 |
-| `notify_telegram.py` | 요약 메시지(sendMessage) 후 PDF(sendDocument) |
+| `notify_telegram.py` | 요약 메시지(sendMessage) 후 PDF(sendDocument). 개인 채팅 + 공유 채널(선택) |
 
 ## 핵심 규칙 (바꾸기 전에 사용자와 상의)
 - **변동 판정 우선순위**: ① 리포트 문구(PDF·요약·상세) → ② 과거 이력 비교(추정, `*` 표시) → ③ 근거 없음
@@ -55,7 +55,8 @@ python -m pytest tests                           # 판정 규칙 회귀 테스�
   요청은 하루 2회, 요청 간격 1초 이상(`SLOW`)을 유지하고, **고객 전용 PDF는 받지 않는다**(공개 목록·요약만).
 - DB증권(로그인·robots 금지), 삼성증권(로그인 필요)은 수집하지 않는다. 로그인·보안 우회 시도 금지.
 - 요약 PDF(`reports/`)와 `watchlist.txt`, 사용자가 넣은 원본 PDF(루트의 `*.pdf`)는 저장소에 올리지 않는다(.gitignore).
-- 비밀값은 GitHub Secrets: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `WATCHLIST`(선택).
+- 비밀값은 GitHub Secrets: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `WATCHLIST`(선택), `TELEGRAM_CHANNEL_ID`(선택).
+- 공유 채널(`TELEGRAM_CHANNEL_ID`)에는 **관심 종목 구역과 수집 경고·오류를 빼고** 보낸다(`main.share_channel`). 경고·오류는 개인 채팅으로만.
 
 ## 고칠 때 검증 방법
 1. `python -m pytest tests` — 실제 문구 사례 기반 회귀 테스트. 새 증권사 양식 문구를 고치면 사례를 테스트에 추가한다.
