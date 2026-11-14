@@ -28,6 +28,23 @@ def get(url, params=None, retries=3, delay=0.3, headers=None):
             time.sleep(2 * (attempt + 1))
 
 
+def soup(r):
+    """응답 HTML을 읽는다. 글자 방식을 추측하지 않고 사이트가 알려준 방식(헤더 charset)을 따른다.
+    추측에 맡기면 가끔 UTF-8 한글을 카자흐어 방식으로 잘못 읽어 깨진다(2026-10-27, 11-10, 11-13 한경)."""
+    from bs4 import BeautifulSoup
+    m = re.search(r"charset=([\w.:-]+)", r.headers.get("Content-Type", ""), re.I)
+    enc = m.group(1).lower() if m else None
+    if enc in ("euc-kr", "euckr", "ks_c_5601-1987"):
+        enc = "cp949"                     # euc-kr 확장(일부 한글)까지 읽도록
+    if not enc:
+        try:
+            r.content.decode("utf-8")
+            enc = "utf-8"
+        except UnicodeDecodeError:
+            enc = None                    # UTF-8이 아니면 페이지 안의 meta 표시로 판단
+    return BeautifulSoup(r.content, "html.parser", from_encoding=enc)
+
+
 def norm_broker(name):
     return re.sub(r"\s+", "", name or "").replace("(리서치센터)", "")
 

@@ -1,9 +1,7 @@
 """한경컨센서스 기업 리포트 목록 (작성자, 요약 bullet 포함)."""
 import re
 
-from bs4 import BeautifulSoup
-
-from common import get, to_int
+from common import get, soup as read_html, to_int
 
 LIST_URL = "https://consensus.hankyung.com/analysis/list"
 BASE = "https://consensus.hankyung.com"
@@ -18,7 +16,7 @@ def fetch(sdate, edate=None):
             "skinType": "business", "sdate": sdate, "edate": edate,
             "pagenum": 200, "now_page": page,
         })
-        soup = BeautifulSoup(r.content, "html.parser")
+        soup = read_html(r)
         rows = soup.select("table tbody tr")
         parsed = [p for p in (_parse_row(tr) for tr in rows) if p]
         reports += parsed

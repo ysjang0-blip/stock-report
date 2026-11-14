@@ -13,6 +13,8 @@ import monitor  # noqa: E402
 import pdf_changes as pc  # noqa: E402
 from fetch_brokers import _fix_ocr  # noqa: E402
 from textclean import ko_en  # noqa: E402
+from common import soup  # noqa: E402
+import requests  # noqa: E402
 
 # (문구, 이번 목표가, 기대 방향, 기대 직전 목표가)
 TARGET_CASES = [
@@ -104,6 +106,21 @@ def test_only_korean_english():
     keep = "📊 기업리포트 요약 (총 3건)\n\n▼ 목표가 하향 (2)\n현대해상 ▼-16% · ㆍ ← → ◆ ★ ⚠ – — … ■ ‣"
     assert ko_en(keep) == keep
     assert ko_en(None) is None and ko_en(53000) == 53000
+
+
+
+def _resp(body, ctype):
+    r = requests.Response()
+    r._content, r.headers["Content-Type"] = body, ctype
+    return r
+
+
+def test_soup_uses_declared_charset():
+    # 한경은 meta 없이 헤더로만 UTF-8을 알려준다 → 추측(가끔 카자흐어 방식으로 오판)하지 않고 헤더를 따른다
+    html = "<table><tr><td>삼성화재(000810)</td><td>메리츠증권</td></tr></table>"
+    assert soup(_resp(html.encode("utf-8"), "text/html; charset=UTF-8")).get_text() == "삼성화재(000810)메리츠증권"
+    assert soup(_resp(html.encode("cp949"), "text/html; charset=euc-kr")).get_text() == "삼성화재(000810)메리츠증권"
+    assert soup(_resp(html.encode("utf-8"), "text/html")).get_text() == "삼성화재(000810)메리츠증권"   # 헤더 없으면 UTF-8 우선
 
 
 if __name__ == "__main__":

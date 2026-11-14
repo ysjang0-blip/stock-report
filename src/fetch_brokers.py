@@ -21,7 +21,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import pdf_changes
-from common import HEADERS, to_int
+from common import HEADERS, soup as read_html, to_int
 
 SLOW = 1.2          # NH·한국투자·다올 요청 간격(초)
 
@@ -180,7 +180,7 @@ def fetch_kis(since, until, skip=()):
                    data={"tab1Name": "report", "tab2Name": "industry", "currentPage": page,
                          "searchColumn": "all", "searchValue": ""}, timeout=30)
         r.raise_for_status()
-        soup = BeautifulSoup(r.content, "html.parser")
+        soup = read_html(r)
         lis = soup.select("a.view_con")
         oldest = None
         for a in lis:
@@ -201,14 +201,14 @@ def fetch_kis(since, until, skip=()):
     out = []
     for it in items:
         m = re.match(r"(.+?)\s*\((\d{6})\)\s*[:\-–]?\s*(.*)", it["title"])
-        if not m or it["title"].startswith("AIR"):   # 산업·전략 리포트, AI 자동작성(AIR) 리포트는 제외
+        if not m or re.match(r"AI(R|\s*실적속보)", it["title"]):   # 산업·전략, AI 자동작성(AIR·AI 실적속보) 리포트는 제외
             continue
         rid = "kis:" + (re.search(r"id=(\d+)", it["url"]).group(1) if re.search(r"id=(\d+)", it["url"]) else it["title"])
         if rid in skip:
             continue
         time.sleep(SLOW)
         r = s.get(KIS_BASE + it["url"], headers={"Referer": KIS_PAGE}, timeout=30)
-        soup = BeautifulSoup(r.content, "html.parser")
+        soup = read_html(r)
         heads = [h.get_text(" ", strip=True) for h in soup.select(".v_info_head")]
         if not heads:                   # 산업 리포트 속 종목 요약: 짧은 문장 몇 줄만 있음
             box = soup.select_one(".v_info_body")
@@ -297,7 +297,7 @@ def fetch_daol(since, until, skip=()):
             "filepath": "", "attaFileNm": "", "startDate": since.replace("-", "/"),
             "endDate": until.replace("-", "/"), "searchSelect": 0, "searchNm1": "", "searchNm2": ""})
         r.raise_for_status()
-        trs = BeautifulSoup(r.content, "html.parser").select("tr")
+        trs = read_html(r).select("tr")
         rows += trs
         if len(trs) < 10:
             break
