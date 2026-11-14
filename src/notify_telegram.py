@@ -8,6 +8,8 @@ import os
 
 import requests
 
+from textclean import ko_en          # 한글·영어 외 다른 나라 글자는 빼고 보낸다
+
 API = "https://api.telegram.org/bot{token}/{method}"
 
 
@@ -34,7 +36,7 @@ def channel_enabled():
 def send_document(path, caption="", chat=None):
     with open(path, "rb") as f:
         r = requests.post(API.format(token=_token(), method="sendDocument"),
-                          data={"chat_id": chat or _chat(), "caption": caption[:1024]},
+                          data={"chat_id": chat or _chat(), "caption": ko_en(caption)[:1024]},
                           files={"document": (os.path.basename(path), f, "application/pdf")},
                           timeout=60)
     r.raise_for_status()
@@ -42,5 +44,5 @@ def send_document(path, caption="", chat=None):
 
 def send_message(text, chat=None):
     r = requests.post(API.format(token=_token(), method="sendMessage"),
-                      data={"chat_id": chat or _chat(), "text": text[:4096]}, timeout=30)
+                      data={"chat_id": chat or _chat(), "text": ko_en(text)[:4096]}, timeout=30)
     r.raise_for_status()

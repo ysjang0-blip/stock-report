@@ -12,6 +12,7 @@ import editions  # noqa: E402
 import monitor  # noqa: E402
 import pdf_changes as pc  # noqa: E402
 from fetch_brokers import _fix_ocr  # noqa: E402
+from textclean import ko_en  # noqa: E402
 
 # (문구, 이번 목표가, 기대 방향, 기대 직전 목표가)
 TARGET_CASES = [
@@ -88,6 +89,21 @@ def test_monitor_warnings():
 def test_ocr_fix():
     assert _fix_ocr("3026 영업이익 186먹원, 30268 증믹") == "3Q26 영업이익 186억원, 3Q26E 증익"
     assert _fix_ocr("2026년 1,300") == "2026년 1,300"
+
+
+
+def test_only_korean_english():
+    # 한자·일본어·러시아어 등 다른 나라 글자는 지운다
+    assert ko_en("美 관세 영향, 中國 수요 회복") == "관세 영향, 수요 회복"
+    assert ko_en("목표주가 ターゲット 53,000원") == "목표주가 53,000원"
+    assert ko_en("Сбер 투자의견 Buy") == "투자의견 Buy"
+    # 전각 영문·숫자는 보통 글자로, 악센트는 떼고 남긴다
+    assert ko_en("ＳＫ하이닉스 ８０％") == "SK하이닉스 80%"
+    assert ko_en("Café 3Q26 Review: It ain’t over") == "Cafe 3Q26 Review: It ain’t over"
+    # 한글·영어·숫자와 우리가 쓰는 기호·이모지·줄바꿈은 그대로
+    keep = "📊 기업리포트 요약 (총 3건)\n\n▼ 목표가 하향 (2)\n현대해상 ▼-16% · ㆍ ← → ◆ ★ ⚠ – — … ■ ‣"
+    assert ko_en(keep) == keep
+    assert ko_en(None) is None and ko_en(53000) == 53000
 
 
 if __name__ == "__main__":

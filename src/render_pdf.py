@@ -6,11 +6,14 @@ import pymupdf
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
 
+from textclean import ko_en
+
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 
 
 def render(sections, total, date, out_path, digest=()):
-    env = Environment(loader=FileSystemLoader(os.path.join(ROOT, "templates")), autoescape=True)
+    env = Environment(loader=FileSystemLoader(os.path.join(ROOT, "templates")), autoescape=True,
+                      finalize=ko_en)   # 표에 찍히는 모든 글자: 한글·영어 외 다른 나라 글자 제거
     html = env.get_template("report.html").render(sections=sections, total=total, digest=digest, date_dot=date.replace("-", "."),
         carried=any(r.get("carried") for sec in sections for reps in sec["stocks"] for r in reps))
 
