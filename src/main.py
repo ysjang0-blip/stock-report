@@ -108,10 +108,10 @@ def run(date, send, only_if_new):
     render_pdf.render(sections, len(reports), date, out_path, build.digest(sections))
     print(f"PDF 생성: {out_path} ({len(reports)}건)")
 
-    history.save(hist_rows + [history.to_row(r) for r in reports if not r.get("industry")])
     if not send:
-        return          # 시험 실행: 발송 기록·판 기록을 남기지 않는다
+        return          # 시험 실행: 이력·발송 기록·판 기록을 남기지 않는다(data/는 실제 실행만 바꾼다)
 
+    history.save(hist_rows + [history.to_row(r) for r in reports if not r.get("industry")])
     monitor.log(stats, date, mode, warns)
     editions.save(editions.mark(state, reports, date))
     sent = load_sent()

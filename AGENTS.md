@@ -22,7 +22,7 @@ python -m pytest tests                           # 판정 규칙 회귀 테스�
 ```
 - 다올 요약 이미지 글자인식에 Tesseract(+한국어 데이터) 필요. 윈도우는 `C:\Program Files\Tesseract-OCR`,
   한국어 데이터는 `%USERPROFILE%\tessdata\kor.traineddata`를 자동 사용. GitHub에서는 apt로 설치됨.
-- 시험 실행은 `--no-send`로. 실제 실행은 `data/editions.json`, `data/runs.csv`, `data/sent.json`을 바꾼다.
+- 시험 실행은 `--no-send`로. 실제 실행은 `data/history.csv`, `data/editions.json`, `data/runs.csv`, `data/sent.json`을 바꾼다(시험 실행은 `data/`를 건드리지 않는다).
 
 ## 구조 (src/)
 | 파일 | 역할 |
