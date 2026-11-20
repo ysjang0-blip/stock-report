@@ -59,9 +59,11 @@ def analyze_pdfs(reports):
 
 
 def add_broker_reports(merged, extra):
-    """증권사 홈페이지 리포트를 더한다. 같은 날·같은 증권사·같은 종목이 이미 있으면 건너뛴다."""
+    """증권사 홈페이지 리포트를 더한다. 같은 날·같은 증권사·같은 종목이 이미 있으면 건너뛴다.
+    산업 리포트는 같은 종목의 기업 리포트와 다른 리포트이므로 건너뛰지 않는다."""
     have = {(r["date"], norm_broker(r["broker"]), r["code"]) for r in merged}
-    return merged + [r for r in extra if (r["date"], norm_broker(r["broker"]), r["code"]) not in have]
+    return merged + [r for r in extra
+                     if r.get("industry") or (r["date"], norm_broker(r["broker"]), r["code"]) not in have]
 
 
 def _find_match(merged, nv):

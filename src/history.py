@@ -75,7 +75,7 @@ def bootstrap_kb_rows(since, until):
     from common import to_int
     out = []
     for it in fetch_brokers.kb_list(since, until):
-        if it.get("stkCd"):
+        if it.get("stkCd") and not it.get("indName"):     # 산업 리포트의 업종 의견은 종목 이력이 아니다
             out.append(to_row({"date": it["publicDate"], "code": it["stkCd"], "broker": "KB증권",
                                "opinion": it.get("recomm"),
                                "target": to_int((it.get("tp") or "").split(".")[0])}))

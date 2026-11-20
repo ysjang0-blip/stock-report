@@ -18,6 +18,7 @@
   .down { color: #1f3d7a; }
   .muted { color: #999; }
   .sum { line-height: 1.35; }
+  .sum-name { display: block; font-weight: 700; color: #1f3d7a; font-size: 7.2pt; margin-bottom: 1px; }
   a { color: inherit; text-decoration: none; }
   tr.sec td { background: #1f3d7a; color: #fff; font-weight: 700; font-size: 9pt; padding: 5px 8px; border: 0; }
   tr.sec.up td { background: #c62828; } tr.sec.down td { background: #1f4e9c; }
@@ -84,7 +85,7 @@
       <td class="r">{{ "{:,}".format(r.prev_close) if r.prev_close else "" }}</td>
       <td class="r">{{ "%.2f%%"|format(r.upside) if r.upside is not none else "" }}</td>
       <td>{% if r.carried %}<span class="carried">{{ r.date[5:].replace('-', '/') }} 발간</span>{% endif %}{% if r.pdf %}<a href="{{ r.pdf }}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}</td>
-      <td class="sum">{% for b in r.bullets if b != r.title %}ㆍ {{ b }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if r.ocr and r.bullets %}<span class="est" style="font-size:6.5pt"> (요약 이미지 글자인식 — 오탈자 가능)</span>{% endif %}{% for n in r.notes %}<span class="note">⚠ {{ n }}</span>{% endfor %}</td>
+      <td class="sum"><span class="sum-name">{{ r.name }}</span>{% for b in r.bullets if b != r.title %}ㆍ {{ b }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if r.ocr and r.bullets %}<span class="est" style="font-size:6.5pt"> (요약 이미지 글자인식 — 오탈자 가능)</span>{% endif %}{% for n in r.notes %}<span class="note">⚠ {{ n }}</span>{% endfor %}</td>
     </tr>
     {% endfor %}{% endfor %}
   {% endfor %}

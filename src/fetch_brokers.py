@@ -77,23 +77,58 @@ def kb_list(since, until):
     return rows
 
 
+def stock_name(code):
+    """종목코드로 종목명을 찾는다(네이버). 못 찾으면 빈 문자열."""
+    if code not in _NAMES:
+        try:
+            r = requests.get(f"https://m.stock.naver.com/api/stock/{code}/basic", headers=HEADERS, timeout=10)
+            _NAMES[code] = (r.json().get("stockName") or "").strip() if r.ok else ""
+        except (requests.RequestException, ValueError):
+            _NAMES[code] = ""
+    return _NAMES[code]
+
+
+_NAMES = {}
+
+
+def kb_name_title(it, lookup=stock_name):
+    """KB 목록 한 줄에서 (종목명, 제목, 산업리포트 여부)를 정한다.
+    기업 리포트 제목은 '삼성에스디에스 (018260)'처럼 종목명+코드다. 산업 리포트('IT서비스 (451020)',
+    '반도체')나 'KB IPO Brief'·'ESG insight'는 제목이 종목명이 아니어서, 종목코드로 진짜 이름을 찾는다."""
+    code, doc, sub = it.get("stkCd") or "", (it.get("docTitle") or "").strip(), (it.get("docTitleSub") or "").strip()
+    m = re.search(r"\s*\((\w{6})\)\s*$", doc)
+    industry = bool(it.get("indName"))
+    title = sub or doc
+    if m and m.group(1) == code and not industry:
+        return doc[:m.start()].strip(), title, False
+    name = lookup(code) or (sub.split(":")[0].strip() if ":" in sub else "") or doc
+    if industry:
+        title = f"[산업: {it['indName'].strip()}] {title}"
+    return name, title, industry
+
+
 def fetch_kb(since, until, skip=()):
     out = []
     for it in kb_list(since, until):
         code = it.get("stkCd")
-        if not code:                 # 산업·전략 리포트는 제외
+        if not code:                 # 종목이 지정되지 않은 산업·전략 리포트는 제외
             continue
         rid = f"kb:{it['documentid']}"
         if rid in skip:
             continue
-        name = re.sub(r"\s*\(\d{6}\)\s*$", "", it.get("docTitle") or "")
+        name, title, industry = kb_name_title(it)
         bullets = [re.sub(r"^[-·•]\s*", "", l).strip() for l in (it.get("docDetail") or "").split("\n")]
-        r = _report("KB증권", rid, it["publicDate"], code, name, it.get("docTitleSub") or name,
-                    author=it.get("analystNm") or "", target=to_int((it.get("tp") or "").split(".")[0]),
-                    opinion=it.get("recomm") or "", bullets=bullets[:4], link=it.get("urlLinkH") or "",
+        r = _report("KB증권", rid, it["publicDate"], code, name, title,
+                    author=it.get("analystNm") or "", bullets=bullets[:4], link=it.get("urlLinkH") or "",
                     history_complete=True)      # KB는 목록에 모든 리포트가 있어 이력 비교가 정확
-        if it.get("recommChg") in KB_OP_CHANGE:
-            r["pdf_op_change"] = KB_OP_CHANGE[it["recommChg"]]
+        if industry:
+            # 산업 리포트의 Positive 등은 업종 의견이지 이 종목의 의견이 아니다 → 의견·목표가·이력 기록 없음
+            r["industry"] = True
+        else:
+            r["target"] = to_int((it.get("tp") or "").split(".")[0])
+            r["opinion"] = it.get("recomm") or ""
+            if it.get("recommChg") in KB_OP_CHANGE:
+                r["pdf_op_change"] = KB_OP_CHANGE[it["recommChg"]]
         out.append(r)
     return out
 

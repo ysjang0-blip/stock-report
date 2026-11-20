@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import editions  # noqa: E402
 import monitor  # noqa: E402
 import pdf_changes as pc  # noqa: E402
-from fetch_brokers import _fix_ocr  # noqa: E402
+from fetch_brokers import _fix_ocr, kb_name_title  # noqa: E402
 from textclean import ko_en  # noqa: E402
 from common import soup  # noqa: E402
 import requests  # noqa: E402
@@ -121,6 +121,21 @@ def test_soup_uses_declared_charset():
     assert soup(_resp(html.encode("utf-8"), "text/html; charset=UTF-8")).get_text() == "삼성화재(000810)메리츠증권"
     assert soup(_resp(html.encode("cp949"), "text/html; charset=euc-kr")).get_text() == "삼성화재(000810)메리츠증권"
     assert soup(_resp(html.encode("utf-8"), "text/html")).get_text() == "삼성화재(000810)메리츠증권"   # 헤더 없으면 UTF-8 우선
+
+
+def test_kb_industry_report_name():
+    # KB 목록의 제목은 보통 '종목명 (코드)'. 산업·IPO 리포트는 제목이 종목명이 아니라 코드로 이름을 찾는다(2026-11-17·20 사례)
+    names = {"018260": "삼성에스디에스", "003490": "대한항공", "005930": "삼성전자"}.get
+    lookup = lambda c: names(c, "")
+    stock = {"stkCd": "018260", "docTitle": "삼성에스디에스 (018260)", "docTitleSub": "AI가 만드는 수주"}
+    assert kb_name_title(stock, lookup) == ("삼성에스디에스", "AI가 만드는 수주", False)
+    ind = {"stkCd": "018260", "docTitle": "IT서비스 (451020)", "indName": "IT서비스",
+           "docTitleSub": "[2027 전망] AI팩토리, 현실화되면 늦다"}
+    assert kb_name_title(ind, lookup) == ("삼성에스디에스", "[산업: IT서비스] [2027 전망] AI팩토리, 현실화되면 늦다", True)
+    ind2 = {"stkCd": "005930", "docTitle": "반도체", "indName": "반도체", "docTitleSub": "비관은 정점"}
+    assert kb_name_title(ind2, lookup) == ("삼성전자", "[산업: 반도체] 비관은 정점", True)
+    ipo = {"stkCd": "0103V0", "docTitle": "KB IPO Brief", "docTitleSub": "케이엠에프: 고수익 발효사업에서"}
+    assert kb_name_title(ipo, lookup) == ("케이엠에프", "케이엠에프: 고수익 발효사업에서", False)   # 상장 전이라 네이버에 없음
 
 
 if __name__ == "__main__":
